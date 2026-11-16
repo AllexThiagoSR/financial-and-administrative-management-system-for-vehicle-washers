@@ -97,3 +97,25 @@ class LedgerTests(TestCase):
         self.assertRedirects(self.client.post(reverse("logout")), url)
         self.assertNotIn("_auth_user_id", self.client.session)
         self.assertTrue(self.owner.password.startswith("pbkdf2_sha256$"))
+
+    def test_pending_pagination_preserves_filter_and_owner_scope(self):
+        def wash(owner, name, status="pending"):
+            return Wash(user=owner, customer_name=name, service_type="Lavagem",
+                        service_date=date(2026, 11, 13), amount_cents=1000,
+                        payment_status=status,
+                        payment_received_date=date(2026, 11, 13) if status == "paid" else None)
+
+        Wash.objects.bulk_create(
+            [wash(self.owner, f"Cliente {index}") for index in range(21)]
+            + [wash(self.owner, "Lavagem recebida", "paid"), wash(self.other, "Outro titular")]
+        )
+        self.client.force_login(self.owner)
+        url = reverse("wash_list")
+        response = self.client.get(url, {"status": "pending"})
+        self.assertEqual(len(response.context["page_obj"]), 20)
+        self.assertContains(response, "page=2&amp;status=pending")
+        self.assertNotContains(response, "Lavagem recebida")
+        self.assertNotContains(response, "Outro titular")
+        second = self.client.get(url, {"status": "pending", "page": 2})
+        self.assertEqual(len(second.context["page_obj"]), 1)
+        self.assertContains(second, "Cliente 0")
