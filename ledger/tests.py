@@ -144,3 +144,38 @@ class LedgerTests(TestCase):
         }, follow=True)
         self.assertContains(response, "Receita avulsa de teste")
         self.assertNotContains(self.client.get(url), "Receita avulsa de teste")
+
+    def test_report_uses_receipt_date_and_owner_scope(self):
+        self.client.force_login(self.owner)
+        for owner, status, received in (
+            (self.owner, "paid", date(2026, 11, 8)),
+            (self.owner, "paid", date(2026, 11, 15)),
+            (self.owner, "pending", None),
+            (self.other, "paid", date(2026, 11, 14)),
+        ):
+            Wash.objects.create(
+                user=owner, customer_name="Cliente teste", service_type="Lavagem",
+                service_date=date(2026, 11, 7), amount_cents=5000,
+                payment_status=status, payment_received_date=received,
+            )
+        for kind, cents in [("income", 2000), ("expense", 3000)]:
+            FinancialTransaction.objects.create(
+                user=self.owner, transaction_type=kind, description="Teste",
+                amount_cents=cents, transaction_date=date(2026, 11, 14),
+            )
+        url = reverse("financial_report")
+        result = self.client.get(url, {"period": "week", "date": "2026-11-13"}).context["result"]
+        self.assertEqual((result.start_date, result.end_date), (date(2026, 11, 8), date(2026, 11, 14)))
+        self.assertEqual((result.income, result.expenses, result.net), (70, 30, 40))
+        result = self.client.get(url, {"period": "day", "date": "2026-11-14"}).context["result"]
+        self.assertEqual(result.net, -10)
+        result = self.client.get(url, {"period": "month", "month": "2024-02"}).context["result"]
+        self.assertEqual(result.end_date, date(2024, 2, 29))
+        self.assertFalse(result.has_entries)
+        self.assertIsNone(self.client.get(url, {"period": "month", "month": "2024-13"}).context["result"])
+
+    def test_week_can_cross_year_boundary(self):
+        from .reports import period_bounds
+
+        self.assertEqual(period_bounds("week", date(2027, 1, 1)),
+                         (date(2026, 12, 27), date(2027, 1, 2)))

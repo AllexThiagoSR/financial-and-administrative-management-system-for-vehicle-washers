@@ -54,3 +54,51 @@ class TransactionForm(AmountForm):
     description = forms.CharField(label="Descrição", max_length=120, validators=[plain_text])
     transaction_date = date_field("Data")
     field_order = ["transaction_type", "description", "amount", "transaction_date"]
+
+
+class ReportFilterForm(forms.Form):
+    period = forms.ChoiceField(
+        label="Período", choices=[("day", "Diário"), ("week", "Semanal"), ("month", "Mensal")],
+    )
+    date = date_field("Data de referência", required=False)
+    month = forms.CharField(
+        label="Mês e ano", required=False, max_length=7,
+        widget=forms.TextInput(attrs={"type": "month", "placeholder": "AAAA-MM"}),
+    )
+
+    def clean(self):
+        from datetime import date
+        import re
+
+        from .reports import period_bounds
+
+        data = super().clean()
+        period = data.get("period")
+        if period == "month":
+            self.errors.pop("date", None)
+            month = data.get("month", "")
+            if "month" in self.errors:
+                return data
+            try:
+                if not re.fullmatch(r"[0-9]{4}-[0-9]{2}", month):
+                    raise ValueError
+                selected_date = date.fromisoformat(f"{month}-01")
+            except ValueError:
+                self.add_error("month", "Informe um mês e ano válidos.")
+                return data
+        elif period in ("day", "week"):
+            self.errors.pop("month", None)
+            selected_date = data.get("date")
+            if selected_date is None:
+                if "date" not in self.errors:
+                    self.add_error("date", "Informe uma data válida.")
+                return data
+        else:
+            return data
+
+        try:
+            data["bounds"] = period_bounds(period, selected_date)
+        except OverflowError:
+            field = "month" if period == "month" else "date"
+            self.add_error(field, "Escolha um período dentro do intervalo de datas válido.")
+        return data

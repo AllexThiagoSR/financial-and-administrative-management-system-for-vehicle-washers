@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Relatório financeiro · Gestão do Lavador{% endblock %}
+{% block content %}
+<main>
+  <h1>Relatório financeiro</h1>
+  <p>Consulte as receitas recebidas e as despesas do período.</p>
+  <form method="get">
+    {% for field in form %}
+      <div class="field" id="{{ field.auto_id }}_group">
+        {{ field.label_tag }}
+        {{ field }}
+        {% if field.errors %}<div class="errors" role="alert">{{ field.errors }}</div>{% endif %}
+      </div>
+    {% endfor %}
+    <div class="form-actions">
+      <button class="primary" type="submit">Aplicar filtro</button>
+    </div>
+  </form>
+  {% if result %}
+    <section class="card" aria-labelledby="totals-title">
+      <h2 id="totals-title">Resultado do período</h2>
+      <p>{{ result.start_date|date:"d/m/Y" }} a {{ result.end_date|date:"d/m/Y" }}</p>
+      <dl>
+        <dt>Receitas recebidas</dt><dd>R$ {{ result.income|floatformat:"2g" }}</dd>
+        <dt>Despesas</dt><dd>R$ {{ result.expenses|floatformat:"2g" }}</dd>
+        <dt><strong>Resultado líquido</strong></dt><dd><strong>R$ {{ result.net|floatformat:"2g" }}</strong></dd>
+      </dl>
+      <p>Receitas recebidas menos despesas.</p>
+      {% if result.net < 0 %}<p>Resultado negativo.</p>{% endif %}
+      {% if not result.has_entries %}<p>Nenhuma movimentação no período.</p>{% endif %}
+    </section>
+  {% endif %}
+  <nav class="actions" aria-label="Navegação">
+    <a class="button secondary" href="{% url 'expense_list' %}">Consultar despesas</a>
+    <a class="button secondary" href="{% url 'wash_list' %}">Voltar à lista de lavagens</a>
+  </nav>
+</main>
+<script src="{% static 'financial-report.js' %}" defer></script>
+{% endblock %}

@@ -11,8 +11,9 @@ from django.utils.crypto import salted_hmac
 from django.views.decorators.cache import never_cache
 from django.views.decorators.http import require_POST
 
-from .forms import TransactionForm, WashForm
+from .forms import ReportFilterForm, TransactionForm, WashForm
 from .models import FinancialTransaction, LoginAttempt, Wash
+from .reports import calculate_report
 from .services import confirm_payment
 
 LOGIN_WINDOW = timedelta(minutes=15)
@@ -115,3 +116,16 @@ def transaction_create(request):
         request.session["confirmed_transaction"] = transaction.pk
         return redirect("expense_list")
     return render(request, "finances/form.html", {"form": form})
+
+
+@never_cache
+@login_required
+def financial_report(request):
+    today = timezone.localdate()
+    form = ReportFilterForm(request.GET if request.GET else {
+        "period": "day", "date": today.isoformat(), "month": today.strftime("%Y-%m"),
+    })
+    result = None
+    if form.is_valid():
+        result = calculate_report(request.user, *form.cleaned_data["bounds"])
+    return render(request, "finances/report.html", {"form": form, "result": result})
