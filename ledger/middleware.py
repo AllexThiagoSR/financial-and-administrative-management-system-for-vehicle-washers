@@ -7,7 +7,7 @@ def content_security_policy(get_response):
             "default-src 'self'; script-src 'self'; object-src 'none'; "
             "base-uri 'none'; frame-ancestors 'none'; form-action 'self'"
         )
-        if request.user.is_authenticated:
+        if getattr(request, "user", None) and request.user.is_authenticated:
             patch_cache_control(response, private=True, no_store=True)
         return response
 
