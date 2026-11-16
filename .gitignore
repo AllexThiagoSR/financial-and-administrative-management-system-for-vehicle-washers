@@ -1,2 +1,8 @@
 plans/
 .codex/
+.venv/
+__pycache__/
+*.py[cod]
+.env
+*.sqlite3*
+staticfiles/
