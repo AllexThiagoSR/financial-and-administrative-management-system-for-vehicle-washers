@@ -4,7 +4,7 @@
 
 Teste uma instalação limpa no Windows e no Linux com Python 3.12. Em hospedagem HTTPS, confirme a persistência de um registro fictício após reinício e republicação, e teste uma restauração separada. Anote versão, ambiente e resultado.
 
-Verifique as três telas a 320 pixels CSS, controles de 44 × 44 pixels CSS, ordem de teclado, foco visível, rótulos e mensagens compreensíveis pelo texto. Para desempenho, prepare 300 lavagens fictícias (100 pendentes), abra a primeira página do filtro com a sessão ativa e desligue o cache. No Chrome Android, simule 1,6 Mb/s de download, 750 kb/s de upload e 150 ms de latência adicional. Após um aquecimento, registre cinco tempos até `load` e calcule a mediana. Aceite abaixo de 3 s. Registre medidas na rede real e após suspensão em séries separadas.
+Verifique as três telas a 320 pixels CSS, controles de 44 × 44 pixels CSS, ordem de teclado, foco visível, rótulos e mensagens compreensíveis pelo texto. Para desempenho, prepare 300 lavagens fictícias (100 pendentes), abra a primeira página do filtro com a sessão ativa e desligue o cache. Para preparar a base em ambiente local isolado, crie uma conta fictícia chamada `performance-demo` com `python manage.py create_owner` e execute `python manage.py seed_performance_data performance-demo`. Antes de hospedar a base de teste, faça uma cópia consistente e mantenha-a separada dos dados reais. No Chrome Android, simule 1,6 Mb/s de download, 750 kb/s de upload e 150 ms de latência adicional. Após um aquecimento, registre cinco tempos até `load` e calcule a mediana. Aceite abaixo de 3 s. Registre medidas na rede real e após suspensão em séries separadas.
 
 ## Duas rodadas em campo
 
