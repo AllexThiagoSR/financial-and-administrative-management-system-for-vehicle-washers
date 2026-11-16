@@ -89,6 +89,22 @@ def wash_pay(request, pk):
 
 @never_cache
 @login_required
+def expense_list(request):
+    expenses = FinancialTransaction.objects.filter(
+        user=request.user, transaction_type=FinancialTransaction.TransactionType.EXPENSE,
+    ).order_by("-transaction_date", "-pk")
+    page_obj = Paginator(expenses, 20).get_page(request.GET.get("page"))
+    confirmation_id = request.session.pop("confirmed_transaction", None)
+    transaction = FinancialTransaction.objects.filter(
+        user=request.user, pk=confirmation_id,
+    ).first() if confirmation_id is not None else None
+    return render(request, "finances/expenses.html", {
+        "page_obj": page_obj, "transaction": transaction,
+    })
+
+
+@never_cache
+@login_required
 def transaction_create(request):
     form = TransactionForm(request.POST if request.method == "POST" else None)
     if request.method == "POST" and form.is_valid():
@@ -97,10 +113,5 @@ def transaction_create(request):
             user=request.user, amount_cents=int(data.pop("amount") * 100), **data,
         )
         request.session["confirmed_transaction"] = transaction.pk
-        return redirect("transaction_create")
-    transaction = None
-    if request.method == "GET":
-        pk = request.session.pop("confirmed_transaction", None)
-        if pk is not None:
-            transaction = FinancialTransaction.objects.filter(user=request.user, pk=pk).first()
-    return render(request, "finances/form.html", {"form": form, "transaction": transaction})
+        return redirect("expense_list")
+    return render(request, "finances/form.html", {"form": form})

@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block title %}Despesas · Gestão do Lavador{% endblock %}
+{% block content %}
+<main>
+  <h1>Despesas</h1>
+  <p>Consulte as despesas já registradas.</p>
+  {% if transaction %}
+    <section class="receipt" role="status">
+      <h2>Movimentação registrada</h2>
+      <p>{{ transaction.get_transaction_type_display }} · {{ transaction.description }} · {{ transaction.transaction_date|date:"d/m/Y" }} · R$ {{ transaction.amount|floatformat:"2g" }}</p>
+    </section>
+  {% endif %}
+  <nav class="actions" aria-label="Ações de despesas">
+    <a class="button primary" href="{% url 'transaction_create' %}">Adicionar movimentação financeira</a>
+    <a class="button secondary" href="{% url 'wash_list' %}">Voltar à lista de lavagens</a>
+  </nav>
+  <section aria-label="Histórico de despesas">
+    {% for expense in page_obj %}
+      <article class="card">
+        <strong>{{ expense.description }}</strong>
+        <p class="meta">{{ expense.transaction_date|date:"d/m/Y" }}</p>
+        <p class="amount">R$ {{ expense.amount|floatformat:"2g" }}</p>
+      </article>
+    {% empty %}
+      <p>Nenhuma despesa registrada.</p>
+    {% endfor %}
+  </section>
+  {% if page_obj.paginator.num_pages > 1 %}
+    <nav class="actions" aria-label="Paginação">
+      {% if page_obj.has_previous %}<a class="button secondary" href="?page={{ page_obj.previous_page_number }}">Anterior</a>{% endif %}
+      <p>Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}</p>
+      {% if page_obj.has_next %}<a class="button secondary" href="?page={{ page_obj.next_page_number }}">Próxima</a>{% endif %}
+    </nav>
+  {% endif %}
+</main>
+{% endblock %}

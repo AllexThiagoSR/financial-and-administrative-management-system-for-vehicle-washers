@@ -80,7 +80,7 @@ class LedgerTests(TestCase):
         self.assertContains(response, "Movimentação registrada")
         self.assertContains(response, "Produtos de limpeza")
         self.assertEqual(FinancialTransaction.objects.get(user=self.owner).amount_cents, 3000)
-        self.assertNotContains(self.client.get(url), "Movimentação registrada")
+        self.assertNotContains(self.client.get(reverse("expense_list")), "Movimentação registrada")
 
     def test_login_throttling_and_logout(self):
         url = reverse("login")
@@ -119,3 +119,28 @@ class LedgerTests(TestCase):
         second = self.client.get(url, {"status": "pending", "page": 2})
         self.assertEqual(len(second.context["page_obj"]), 1)
         self.assertContains(second, "Cliente 0")
+
+    def test_expense_history_filters_by_type_and_owner(self):
+        url = reverse("expense_list")
+        self.assertEqual(self.client.get(url).status_code, 302)
+        self.client.force_login(self.owner)
+        self.assertContains(self.client.get(url), "Nenhuma despesa registrada")
+        for user, kind, description in (
+            (self.owner, "expense", "Materiais"),
+            (self.owner, "income", "Receita de teste"),
+            (self.other, "expense", "Despesa de outra conta"),
+        ):
+            FinancialTransaction.objects.create(
+                user=user, transaction_type=kind, description=description,
+                amount_cents=5000, transaction_date=date(2026, 11, 13),
+            )
+        response = self.client.get(url)
+        self.assertContains(response, "Materiais")
+        self.assertNotContains(response, "Receita de teste")
+        self.assertNotContains(response, "Despesa de outra conta")
+        response = self.client.post(reverse("transaction_create"), {
+            "transaction_type": "income", "description": "Receita avulsa de teste",
+            "amount": "20,00", "transaction_date": "2026-11-13",
+        }, follow=True)
+        self.assertContains(response, "Receita avulsa de teste")
+        self.assertNotContains(self.client.get(url), "Receita avulsa de teste")
